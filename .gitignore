@@ -1,0 +1,39 @@
+# Arquivos de dados brutos do banco MIT-BIH
+*.atr
+*.dat
+*.hea
+*.xws
+*.at-
+*.at_
+*.csv
+database/
+
+# Ambientes locais
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Modelos e resultados temporários
+*.h5
+*.pkl
+*.joblib
+*.npy
+*.npz
+
+# Logs e caches
+*.log
+.cache/
+
+# Sistema
+.DS_Store
+Thumbs.db
