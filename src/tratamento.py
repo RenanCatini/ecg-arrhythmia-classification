@@ -4,8 +4,6 @@ import pandas as pd
 from scipy.signal import butter, filtfilt
 from tqdm import tqdm
 
-CAMINHO = '../database'
-
 # Implementado pelo gemini
 def filtrar_ecg(
     sinal, fs=360, freq_baixa=0.5, freq_alta=45.0, ordem=3
@@ -108,7 +106,8 @@ def processamento():
                 # Encontrar intervalo RR anterior e posterior do batimento
                 rr_pre = (pico - indices_picos[i-1]) / 360
                 rr_pos = (indices_picos[i+1] - pico) / 360
-                rr_relativo = rr_pre / rr_medio
+                rr_pre_relativo = rr_pre / rr_medio
+                rr_pos_relativo = rr_pos / rr_medio
 
                 # Intervalos do batimento
                 inicio = pico - PRE_R
@@ -132,7 +131,7 @@ def processamento():
 
 
                 # Salvar tudo em uma lista com as informações: segmento, id paciente, classe e as informações dos rr's
-                linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_relativo, classe]
+                linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, classe]
                 dados_finais.append(linha)
 
         except FileNotFoundError:
@@ -142,7 +141,7 @@ def processamento():
 
     # ---------------- Salvar informações dos batimentos ----------------
     colunas_pontos = [f'ponto_{pontos}' for pontos in range(0,300)]
-    colunas_infos = ["rr_pre", "rr_pos", "rr_relativo", "padrao_aami"]
+    colunas_infos = ["rr_pre", "rr_pos", "rr_pre_relativo", "rr_pos_relativo", "padrao_aami"]
     todas_colunas = ['registro'] + colunas_pontos + colunas_infos
 
     # Criar df
@@ -157,12 +156,12 @@ if __name__ == "__main__":
     ecgs = processamento()
 
     # Separ o conjunto em teste e treino seguindo a separação do conjunto
-    pacientes_teste = [
+    pacientes_treino = [
         "101", "106", "108", "109", "112", "114", "115", "116", "118", "119", "122",
         "124", "201", "203", "205", "207", "208", "209", "215", "220", "223", "230",
     ]
 
-    pacientes_treino = [
+    pacientes_teste = [
         "100", "103", "105", "111", "113", "117", "121", "123", "200", "202", "210",
         "212", "213", "214", "219", "221", "222", "228", "231", "232", "233", "234",
     ]
