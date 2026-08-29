@@ -95,9 +95,14 @@ def processamento():
             # Pegar o sinal do exame com o canal correto
             ecg_bruto = sinal_atual.p_signal[:,indice_canal]
 
-            # Filtrar ruídos 
+            # ---- Filtrar ruídos ----
+            # Filtro passa-alta para filtrar valores menores que 0.05Hz
             ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto)
-            ecg_filtrado_final = filtro_notch(ecg_filtrado_1)
+
+            # Filtros rejeita-faixa para retirar filtro de linha de energia de 60Hz e harmônicos
+            ecg_filtrado_2 = filtro_notch(ecg_filtrado_1, freq_rejeicao=60.0, Q=20.0)
+            ecg_filtrado_3 = filtro_notch(ecg_filtrado_2, freq_rejeicao=120.0, Q=20.0)
+            ecg_filtrado_final = filtro_notch(ecg_filtrado_3, freq_rejeicao=180.0, Q=20.0)
 
             # Picos R e qual sua classe
             indices_picos = anotacao_atual.sample
@@ -144,7 +149,6 @@ def processamento():
                     segmento_normalizado = (segmento - media_batimento_atual) / desvio_batimento_atual
                 else:
                     segmento_normalizado = segmento - media_batimento_atual
-
 
                 # Salvar tudo em uma lista com as informações: segmento, id paciente, classe e as informações dos rr's
                 linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, classe]
