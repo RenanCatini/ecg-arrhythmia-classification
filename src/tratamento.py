@@ -150,8 +150,17 @@ def processamento():
                 else:
                     segmento_normalizado = segmento - media_batimento_atual
 
+                # Calcular algumas estatisticas do batimento
+                media_atual = np.mean(segmento)
+                desvio_atual = np.std(segmento)
+                soma_quadratica_atual = np.sum(segmento**2)
+                norma_atual = np.sqrt(segmento*segmento)
+                rms_atual = np.sqrt(soma_quadratica_atual) 
+    
+
                 # Salvar tudo em uma lista com as informações: segmento, id paciente, classe e as informações dos rr's
-                linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, classe]
+                linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, 
+                                                                    media_atual, desvio_atual, soma_quadratica_atual, norma_atual, rms_atual, classe]
                 dados_finais.append(linha)
 
         except FileNotFoundError:
@@ -161,7 +170,11 @@ def processamento():
 
     # ---------------- Salvar informações dos batimentos ----------------
     colunas_pontos = [f'ponto_{pontos}' for pontos in range(0,300)]
-    colunas_infos = ["rr_pre", "rr_pos", "rr_pre_relativo", "rr_pos_relativo", "padrao_aami"]
+    
+    colunas_infos = ["rr_pre", "rr_pos", "rr_pre_relativo", "rr_pos_relativo", 
+                     "media_atual", "desvio_atual", "soma_quadratica_atual", "norma_atual", "rms_atual", 
+                     "padrao_aami"]
+    
     todas_colunas = ['registro'] + colunas_pontos + colunas_infos
 
     # Criar df
