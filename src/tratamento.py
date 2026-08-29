@@ -1,12 +1,13 @@
 import wfdb
 import numpy as np
 import pandas as pd
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, sosfiltfilt
 from tqdm import tqdm
+from scipy.signal import filtfilt, iirnotch
 
-# Implementado pelo gemini
-def filtrar_ecg(
-    sinal, fs=360, freq_baixa=0.5, freq_alta=45.0, ordem=3
+
+def butterworth_passa_alta(              
+    sinal, fs=360, freq_corte=0.05, ordem=9
 ):
     """Aplica filtro passa-faixa Butterworth no sinal de ECG.
 
@@ -17,13 +18,27 @@ def filtrar_ecg(
     nyquist = 0.5 * fs
 
     # 2. Frequências de corte normalizadas (devem estar entre 0 e 1)
-    low = freq_baixa / nyquist
-    high = freq_alta / nyquist
+    corte = freq_corte / nyquist
 
     # 3. Calcula os coeficientes b e a do filtro Butterworth
-    b, a = butter(ordem, [low, high], btype="bandpass")
+    sos = butter(ordem, corte, btype="highpass", output="sos")
 
     # 4. Aplica o filtro sem defasagem temporal (fase zero)
+    sinal_filtrado = sosfiltfilt(sos, sinal)
+
+    return sinal_filtrado
+
+def filtro_notch(sinal, fs=360, freq_rejeicao=60.0, Q=10.0):
+    """Aplica um filtro Notch (rejeita-faixa) IIR no sinal.
+
+    - freq_rejeicao: Frequência central a ser eliminada (ex: 60.0 Hz).
+    - Q: Fator de qualidade (largura de banda = freq_rejeicao / Q). Quanto maior
+    o Q, mais estreita é a faixa rejeitada (evita atenuar o QRS).
+    """
+    # 1. Projeta os coeficientes b e a do filtro Notch
+    b, a = iirnotch(w0=freq_rejeicao, Q=Q, fs=fs)
+
+    # 2. Aplica o filtro bidirecionalmente (fase zero)
     sinal_filtrado = filtfilt(b, a, sinal)
 
     return sinal_filtrado
@@ -80,8 +95,9 @@ def processamento():
             # Pegar o sinal do exame com o canal correto
             ecg_bruto = sinal_atual.p_signal[:,indice_canal]
 
-            # Filtrar ruídos (linha de energia e acima, e linha de base)
-            ecg_filtrado = filtrar_ecg(ecg_bruto)
+            # Filtrar ruídos 
+            ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto)
+            ecg_filtrado_final = filtro_notch(ecg_filtrado_1)
 
             # Picos R e qual sua classe
             indices_picos = anotacao_atual.sample
@@ -92,7 +108,7 @@ def processamento():
             rr_medio = np.mean(vetor_rr)
 
             #------------------- EXTRAIR BATIMENTOS -------------------
-            total_amostras = len(ecg_filtrado)
+            total_amostras = len(ecg_filtrado_final)
 
             # Descarta os primeiros e ultimos batimentos            
             for i in range(1, len(indices_picos)-1):
@@ -118,7 +134,7 @@ def processamento():
                     continue
 
                 # Separar batimento: 100 pontos antes de R, e 200 pontos depois
-                segmento = ecg_filtrado[inicio:fim]
+                segmento = ecg_filtrado_final[inicio:fim]
 
                 # Normalizar por Z-Score
                 media_batimento_atual = np.mean(segmento)
