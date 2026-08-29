@@ -7,7 +7,7 @@ from scipy.signal import filtfilt, iirnotch
 
 
 def butterworth_passa_alta(              
-    sinal, fs=360, freq_corte=0.05, ordem=9
+    sinal, fs=360, freq_corte=0.05, ordem=3
 ):
     """Aplica filtro passa-faixa Butterworth no sinal de ECG.
 
@@ -96,8 +96,8 @@ def processamento():
             ecg_bruto = sinal_atual.p_signal[:,indice_canal]
 
             # ---- Filtrar ruídos ----
-            # Filtro passa-alta para filtrar valores menores que 0.05Hz
-            ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto)
+            # Filtro passa-alta para filtrar valores menores que 0.5Hz
+            ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto, freq_corte=0.5, ordem=3)
 
             # Filtros rejeita-faixa para retirar filtro de linha de energia de 60Hz e harmônicos
             ecg_filtrado_2 = filtro_notch(ecg_filtrado_1, freq_rejeicao=60.0, Q=20.0)
@@ -154,7 +154,7 @@ def processamento():
                 media_atual = np.mean(segmento)
                 desvio_atual = np.std(segmento)
                 soma_quadratica_atual = np.sum(segmento**2)
-                norma_atual = np.sqrt(segmento*segmento)
+                norma_atual = np.sqrt(np.mean(segmento**2))
                 rms_atual = np.sqrt(soma_quadratica_atual) 
     
 
@@ -170,7 +170,7 @@ def processamento():
 
     # ---------------- Salvar informações dos batimentos ----------------
     colunas_pontos = [f'ponto_{pontos}' for pontos in range(0,300)]
-    
+
     colunas_infos = ["rr_pre", "rr_pos", "rr_pre_relativo", "rr_pos_relativo", 
                      "media_atual", "desvio_atual", "soma_quadratica_atual", "norma_atual", "rms_atual", 
                      "padrao_aami"]
