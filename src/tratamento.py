@@ -1,4 +1,5 @@
 import wfdb
+from wfdb import processing
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, sosfiltfilt
@@ -6,9 +7,7 @@ from tqdm import tqdm
 from scipy.signal import filtfilt, iirnotch
 
 
-def butterworth_passa_alta(              
-    sinal, fs=360, freq_corte=0.05, ordem=3
-):
+def butterworth_passa_alta(sinal, fs=360, freq_corte=0.5, ordem=3):
     """Aplica filtro passa-faixa Butterworth no sinal de ECG.
 
     - freq_baixa = 0.5 Hz (remove desvio de linha de base / respiracao)
@@ -105,8 +104,25 @@ def processamento():
             ecg_filtrado_final = filtro_notch(ecg_filtrado_3, freq_rejeicao=180.0, Q=20.0)
 
             # Picos R e qual sua classe
-            indices_picos = anotacao_atual.sample
-            simbolos = pd.Series(anotacao_atual.symbol).map(mapa_aami)
+            # indices_picos = anotacao_atual.sample # Picos originais do dataset
+
+            # Encontrar com algoritmo xqrs
+            indices_picos = processing.xqrs_detect(sig=ecg_filtrado_final, fs=360, verbose=False)
+
+            # Mapa de amostras reais por classe
+            mapa_posicao_classe = dict(zip(anotacao_atual.sample, pd.Series(anotacao_atual.symbol).map(mapa_aami)))
+            picos_reais = anotacao_atual.sample
+            tolerancia = int(0.05 * 360)
+
+            # Conta quantos picos detectados estão próximos de algum pico real
+            corretos = sum(np.min(np.abs(picos_reais - p)) <= tolerancia for p in indices_picos)
+            total_reais = len(picos_reais)
+            print(f"Paciente {registro}: Detectou {corretos} de {total_reais} picos reais ({(corretos / total_reais) * 100:.2f}%)")
+
+            # Correção para enocntrar o pico mais alto real
+            indices_picos = np.array([p - 10 + np.argmax(ecg_filtrado_final[max(0, p - 10):min(len(ecg_filtrado_final), p + 11)]) for p in indices_picos])
+
+            # simbolos = pd.Series(anotacao_atual.symbol).map(mapa_aami)
 
             #--------------------- INTERVALOS RR's --------------------
             vetor_rr = np.diff(indices_picos ) / 360
@@ -118,10 +134,19 @@ def processamento():
             # Descarta os primeiros e ultimos batimentos            
             for i in range(1, len(indices_picos)-1):
                 pico = indices_picos[i]
-                classe = simbolos[i]
+
+                # Encontra o pico real mais proximo
+                pico_real_proximo = picos_reais[np.argmin(np.abs(picos_reais - pico))]
+
+                # Se for distante, pula
+                if abs(pico_real_proximo - pico) > tolerancia:
+                    continue
+
+                # Se encontrou, salva a coordenada real
+                classe = mapa_posicao_classe[pico_real_proximo]
 
                 # Se o batimento for nulo, já descarta
-                if pd.isna(classe):
+                if pd.isna(classe): 
                     continue
 
                 # Encontrar intervalo RR anterior e posterior do batimento
