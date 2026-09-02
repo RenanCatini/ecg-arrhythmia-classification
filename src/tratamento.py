@@ -95,13 +95,13 @@ def processamento():
             ecg_bruto = sinal_atual.p_signal[:,indice_canal]
 
             #--------------------- FILTRAR RUÍDOS --------------------
-            # Filtro passa-alta para filtrar valores menores que 0.5Hz
-            ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto, freq_corte=0.5, ordem=3)
+            # Filtro passa-alta para filtrar valores menores que 0.43Hz
+            ecg_filtrado_1 = butterworth_passa_alta(ecg_bruto, freq_corte=0.43, ordem=5)
 
             # Filtros rejeita-faixa para retirar filtro de linha de energia de 60Hz e harmônicos
-            ecg_filtrado_2 = filtro_notch(ecg_filtrado_1, freq_rejeicao=60.0, Q=20.0)
-            ecg_filtrado_3 = filtro_notch(ecg_filtrado_2, freq_rejeicao=120.0, Q=20.0)
-            ecg_filtrado_final = filtro_notch(ecg_filtrado_3, freq_rejeicao=180.0, Q=20.0)
+            ecg_filtrado_2 = filtro_notch(ecg_filtrado_1, freq_rejeicao=60.0, Q=100.0)
+            ecg_filtrado_3 = filtro_notch(ecg_filtrado_2, freq_rejeicao=120.0, Q=100.0)
+            ecg_filtrado_final = filtro_notch(ecg_filtrado_3, freq_rejeicao=180.0, Q=100.0)
 
             #--------------------- ENCONTRAR PICOS R --------------------
             # indices_picos = anotacao_atual.sample # Picos originais do dataset
@@ -112,10 +112,7 @@ def processamento():
             # Mapa de amostras reais por classe
             mapa_posicao_classe = dict(zip(anotacao_atual.sample, pd.Series(anotacao_atual.symbol).map(mapa_aami)))
             picos_reais = anotacao_atual.sample
-            tolerancia = int(0.05 * 360)
-
-            # Correção para enocntrar o pico mais alto real
-            indices_picos = np.array([p - 10 + np.argmax(ecg_filtrado_final[max(0, p - 10):min(len(ecg_filtrado_final), p + 11)]) for p in indices_picos])
+            tolerancia = int(0.01 * 360)
 
             #--------------------- INTERVALOS RR's --------------------
             vetor_rr = np.diff(indices_picos ) / 360
