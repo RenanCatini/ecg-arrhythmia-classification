@@ -112,7 +112,7 @@ def processamento():
             # Mapa de amostras reais por classe
             mapa_posicao_classe = dict(zip(anotacao_atual.sample, pd.Series(anotacao_atual.symbol).map(mapa_aami)))
             picos_reais = anotacao_atual.sample
-            tolerancia = int(0.01 * 360)
+            tolerancia = int(0.01 * 360)    # Tolerancia de 7 pontos
 
             #--------------------- INTERVALOS RR's --------------------
             vetor_rr = np.diff(indices_picos ) / 360
