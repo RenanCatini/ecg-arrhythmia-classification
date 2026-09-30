@@ -49,7 +49,7 @@ def processamento():
     # Mapa para renomear classes dos batimentos
     mapa_aami = {
         # Normais
-        'N': 'N', 'L': 'N', 'R': 'N', 'e': 'N', 'j': 'N',
+        'N': 'N', 'L': 'N', 'R': 'N', 'e': 'N', 'j': 'N', '.': 'N',
 
         # Classe S
         'A': 'S', 'a': 'S', 'J': 'S', 'S': 'S',
@@ -112,7 +112,7 @@ def processamento():
             # Mapa de amostras reais por classe
             mapa_posicao_classe = dict(zip(anotacao_atual.sample, pd.Series(anotacao_atual.symbol).map(mapa_aami)))
             picos_reais = anotacao_atual.sample
-            tolerancia = int(0.01 * 360)    # Tolerancia de 7 pontos
+            tolerancia = int(0.015 * 360)    # Tolerancia de 10 pontos
 
             #--------------------- INTERVALOS RR's --------------------
             vetor_rr = np.diff(indices_picos ) / 360
@@ -157,13 +157,14 @@ def processamento():
                 segmento = ecg_filtrado_final[inicio:fim]
 
                 # Normalizar por Z-Score
-                media_batimento_atual = np.mean(segmento)
-                desvio_batimento_atual = np.std(segmento)
+                # media_batimento_atual = np.mean(segmento)
+                # desvio_batimento_atual = np.std(segmento)
 
-                if desvio_batimento_atual != 0:
-                    segmento_normalizado = (segmento - media_batimento_atual) / desvio_batimento_atual
-                else:
-                    segmento_normalizado = segmento - media_batimento_atual
+                # retirar z-score
+                # if desvio_batimento_atual != 0:
+                #     segmento_normalizado = (segmento - media_batimento_atual) / desvio_batimento_atual
+                # else:
+                #     segmento_normalizado = segmento - media_batimento_atual
 
                 # Calcular algumas estatisticas do batimento
                 media_atual = np.mean(segmento)
@@ -171,11 +172,13 @@ def processamento():
                 soma_quadratica_atual = np.sum(segmento**2)
                 norma_atual = np.sqrt(np.mean(segmento**2))
                 rms_atual = np.sqrt(soma_quadratica_atual) 
+                magnetude_atual = np.max(np.abs(segmento))
     
 
                 # Salvar tudo em uma lista com as informações: segmento, id paciente, classe e as informações dos rr's
-                linha = [registro] +  list(segmento_normalizado) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, 
-                                                                    media_atual, desvio_atual, soma_quadratica_atual, norma_atual, rms_atual, classe]
+                linha = [registro] +  list(segmento) + [rr_pre, rr_pos, rr_pre_relativo, rr_pos_relativo, 
+                                                        media_atual, desvio_atual, soma_quadratica_atual, 
+                                                        norma_atual, rms_atual, magnetude_atual, classe]
                 dados_finais.append(linha)
 
         except FileNotFoundError:
@@ -187,8 +190,8 @@ def processamento():
     colunas_pontos = [f'ponto_{pontos}' for pontos in range(0,300)]
 
     colunas_infos = ["rr_pre", "rr_pos", "rr_pre_relativo", "rr_pos_relativo", 
-                     "media_atual", "desvio_atual", "soma_quadratica_atual", "norma_atual", "rms_atual", 
-                     "padrao_aami"]
+                     "media_atual", "desvio_atual", "soma_quadratica_atual", "norma_atual", 
+                     "rms_atual", "magnetude_atual", "padrao_aami"]
     
     todas_colunas = ['registro'] + colunas_pontos + colunas_infos
 
